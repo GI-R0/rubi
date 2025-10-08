@@ -4,17 +4,13 @@ import Task from './components/Task/Task';
 import TaskForm from './components/TaskForm/TaskForm'; 
 
 function App() {
-    // Definición de estados
     const [tasks, setTasks] = useState([]); 
     const [loading, setLoading] = useState(false); 
     const [showForm, setShowForm] = useState(false); 
 
-    // Función para obtener las tareas (GET)
     const fetchTasks = async () => {
         try {
             setLoading(true); 
-            
-            // 💡 NOTA: Asumiendo que la respuesta es { tasks: [...] } 
             const response = await fetch(`http://localhost:3000/tasks`); 
             
             if (!response.ok) {
@@ -23,7 +19,7 @@ function App() {
             
             const res = await response.json(); 
             
-            // Asume que el backend devuelve un objeto con la propiedad 'tasks'
+            // 💡 Aseguramos que la lista se cargue correctamente
             setTasks(res.tasks || []); 
             setLoading(false); 
 
@@ -33,17 +29,14 @@ function App() {
         }
     }
 
-    // Petición inicial al montar el componente
     useEffect(() => {
         fetchTasks(); 
     }, []) 
     
-    // ------------------------------------------------------------------
     // FUNCIÓN: CREAR TAREA (POST)
-    // ------------------------------------------------------------------
     const addTask = async (newTaskData) => {
         try {
-            // 1. Simulación de la petición POST a la API
+            // 1. Petición POST a la API
             const response = await fetch(`http://localhost:3000/tasks`, {
                 method: 'POST',
                 headers: {
@@ -51,32 +44,30 @@ function App() {
                 },
                 body: JSON.stringify(newTaskData),
             });
-
             if (!response.ok) {
                 throw new Error('Error al crear la tarea');
             }
-
-            // 2. La API debería devolver la tarea creada, incluyendo su ID.
-            const createdTask = await response.json(); 
+            
+            // 2. La API devuelve { task: {...} }
+            const createdTask = await response.json();                         
             
             // 3. Actualizar el estado de tareas añadiendo la nueva tarea
+            // 💡 CORRECCIÓN: Usamos directamente createdTask.task, que ya contiene el _id
             setTasks(prevTasks => [...prevTasks, createdTask.task]);
             
             // 4. Ocultar el formulario
             setShowForm(false); 
-
+            
         } catch (error) {
             console.error('Error al añadir la tarea:', error);
             // Manejar error (e.g., mostrar un mensaje al usuario)
         }
     };
     
-    // ------------------------------------------------------------------
     // FUNCIÓN: ELIMINAR TAREA (DELETE)
-    // ------------------------------------------------------------------
     const deleteTask = async (taskId) => {
         try {
-            // 1. Petición DELETE a la API
+            // 1. Hacemos la llamada al backend para la eliminación
             const response = await fetch(`http://localhost:3000/tasks/${taskId}`, {
                 method: 'DELETE',
             });
@@ -85,8 +76,9 @@ function App() {
                 throw new Error('Error al eliminar la tarea');
             }
 
-            // 2. Si es exitosa, actualizar el estado (filtrar la tarea eliminada)
-            setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+            // 2. Actualiza el estado (filtra la tarea eliminada)
+            // 💡 CORRECCIÓN: Filtramos usando task._id, que es el estándar de MongoDB
+            setTasks(prevTasks => prevTasks.filter(task => task._id !== taskId));
 
         } catch (error) {
             console.error("Error al eliminar la tarea:", error);
@@ -94,10 +86,10 @@ function App() {
     };
 
     return (
-        <div className="App-container"> {/* Contenedor para aplicar estilos globales */}
+        <div className="App-container">
             <h1>Mi Lista de Tareas</h1>
 
-            {/* Listar las tareas con lógica condicional */}
+            {/* Listado de tareas */}
             {loading ?
                 <p>Cargando...</p> 
             :
@@ -107,24 +99,25 @@ function App() {
                     <div className='task-list'>
                         {tasks.map((task) => (
                             <Task 
-                                key={task.id} // 🔑 Usamos el ID de la tarea como 'key' (mejor práctica)
+                                key={task._id} // Usamos _id para la clave de React
                                 task={task} 
-                                onDelete={deleteTask} // 💡 Pasamos la función de eliminación
+                                onDelete={deleteTask}
                             />
                         ))}
                     </div>
                 )
             }
 
-            {/* Mostrar el formulario condicionalmente */}
+            {/* Formulario */}
             {showForm && 
                 <TaskForm 
-                    onTaskCreated={addTask} // 💡 Pasamos la función para crear tarea
-                    onClose={() => setShowForm(false)} // 💡 Pasamos la función para cerrar el formulario
+                    // Se pasa la función actualizada
+                    onTaskCreated={addTask} 
+                    onClose={() => setShowForm(false)} 
                 />
             }
             
-            {/* Botón para mostrar el formulario */}
+            {/* Botón de creación */}
             {!showForm && (
                 <button 
                     onClick={() => setShowForm(true)} 
